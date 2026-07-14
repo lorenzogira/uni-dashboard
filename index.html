@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>UNIFESP SJC Planner</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #fff; display: flex; height: 100vh; margin: 0; }
+        #sidebar { width: 350px; padding: 20px; border-right: 1px solid #444; background: #1a1a1a; }
+        #network { flex-grow: 1; height: 100%; }
+        .uc-box { padding: 10px; margin-bottom: 10px; background: #2c3e50; border-radius: 5px; }
+        input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; }
+        button { background: #27ae60; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h1>Planner UNIFESP</h1>
+    <label>Curso:</label>
+    <select id="matrixSelect" onchange="loadMatrix()">
+        <option value="bct">BCT (Padrão)</option>
+        <option value="ec">Eng. Computação</option>
+    </select>
+
+    <h3>Adicionar UC Externa</h3>
+    <input type="text" id="ucCode" placeholder="Código (ex: 5414)">
+    <input type="text" id="ucName" placeholder="Nome da Disciplina">
+    <input type="text" id="ucReqs" placeholder="Pré-requisitos (separar por vírgula)">
+    <button onclick="addCustomUC()">Adicionar UC</button>
+    <p style="font-size: 0.8em; margin-top:10px;">Dica: Clique no nó para marcar como concluído.</p>
+</div>
+<div id="network"></div>
+
+<script>
+    let nodes = new vis.DataSet();
+    let edges = new vis.DataSet();
+    let network;
+    let completed = JSON.parse(localStorage.getItem('completedUCs')) || [];
+
+    const matrices = {
+        bct: {
+            nodes: [
+                {id: "5702", label: "Cálculo 1", group: "fixa"},
+                {id: "9394", label: "Lógica Programação", group: "fixa"},
+                {id: "4328", label: "Séries e EDO", group: "fixa"}
+            ],
+            edges: [{from: "5702", to: "4328"}]
+        }
+    };
+
+    function loadMatrix() {
+        const type = document.getElementById('matrixSelect').value;
+        nodes.clear();
+        edges.clear();
+        
+        matrices[type].nodes.forEach(n => nodes.add(n));
+        matrices[type].edges.forEach(e => edges.add(e));
+        
+        refreshGraph();
+    }
+
+    function refreshGraph() {
+        const container = document.getElementById('network');
+        const data = { nodes: nodes, edges: edges };
+        const options = {
+            nodes: { shape: 'box', color: '#3498db' },
+            physics: { enabled: false } // No physics = no sliding
+        };
+        network = new vis.Network(container, data, options);
+        updateStyles();
+    }
+
+    function updateStyles() {
+        let nodeUpdates = nodes.get().map(node => ({
+            id: node.id,
+            color: completed.includes(node.id) ? '#27ae60' : '#3498db'
+        }));
+        nodes.update(nodeUpdates);
+    }
+
+    function addCustomUC() {
+        const id = document.getElementById('ucCode').value;
+        const label = document.getElementById('ucName').value;
+        const reqs = document.getElementById('ucReqs').value.split(',');
+
+        nodes.add({ id, label, color: '#9b59b6' });
+        reqs.forEach(req => edges.add({ from: req.trim(), to: id }));
+    }
+
+    // Toggle completion on click
+    document.getElementById('network').addEventListener('click', () => {
+        let selectedNodes = network.getSelectedNodes();
+        if(selectedNodes.length > 0) {
+            let id = selectedNodes[0];
+            if(completed.includes(id)) completed = completed.filter(i => i !== id);
+            else completed.push(id);
+            localStorage.setItem('completedUCs', JSON.stringify(completed));
+            updateStyles();
+        }
+    });
+
+    loadMatrix();
+</script>
+</body>
+</html>
