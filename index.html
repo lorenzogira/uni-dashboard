@@ -93,7 +93,7 @@
         let selectedNodes = network.getSelectedNodes();
         if(selectedNodes.length > 0) {
             let id = selectedNodes[0];
-            if(completed.includes(id)) completed = completed.filter(i => i !== id);
+            if(completed.incl2udes(id)) completed = completed.filter(i => i !== id);
             else completed.push(id);
             localStorage.setItem('completedUCs', JSON.stringify(completed));
             updateStyles();
